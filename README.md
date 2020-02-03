@@ -395,6 +395,31 @@ The following guide shows an example of setting up a Serverless application that
 
 [Instrumenting Web Frameworks in a Serverless Environment](https://docs.aws.amazon.com/xray/latest/devguide/xray-sdk-python-serverless.html)
 
+### Add Pyramid middleware
+
+```python
+from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.ext.pyramid.middleware import XRayMiddleware
+from pyramid.config import Configurator
+
+from app.request_factory import TestRequestFactory
+
+
+def main(global_config, **settings):
+    with Configurator() as config:
+        config.settings = settings
+        config.add_route('home', '/')
+        config.add_route('hello', '/howdy')
+        config.add_route('redirect', '/goto')
+        config.add_route('exception', '/problem')
+        config.set_request_factory(TestRequestFactory)
+        config.scan('app.views')
+        app = config.make_wsgi_app()
+        xray_recorder.configure(service='fallback_name', dynamic_naming='*mysite.com*')
+        XRayMiddleware(app, TestRequestFactory({}), xray_recorder)
+    return app
+```
+
 ### Working with aiohttp
 
 Adding aiohttp middleware. Support aiohttp >= 2.3.
