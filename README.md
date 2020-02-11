@@ -402,7 +402,7 @@ from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.ext.pyramid.middleware import XRayMiddleware
 from pyramid.config import Configurator
 
-from app.request_factory import TestRequestFactory
+from aws_xray_sdk.ext.middleware import XRayRequestFactory
 
 
 def main(global_config, **settings):
@@ -412,11 +412,16 @@ def main(global_config, **settings):
         config.add_route('hello', '/howdy')
         config.add_route('redirect', '/goto')
         config.add_route('exception', '/problem')
-        config.set_request_factory(TestRequestFactory)
         config.scan('app.views')
+        config.set_request_factory(XRayRequestFactory)
         app = config.make_wsgi_app()
-        xray_recorder.configure(service='fallback_name', dynamic_naming='*mysite.com*')
-        XRayMiddleware(app, TestRequestFactory({}), xray_recorder)
+        xray_recorder.configure(
+            service='fallback_name',
+            dynamic_naming='*mysite.com*',
+            plugins=('EC2Plugin',),
+            sampling=False
+        )
+        XRayMiddleware(app, xray_recorder)
     return app
 ```
 
